@@ -4,7 +4,7 @@
             <slot />
         </span>
 
-        <jet-dialog-modal :show="confirmingPassword" @close="confirmingPassword = false">
+        <jet-dialog-modal id="confirmingPasswordModal" @close="confirmingPassword = false">
             <template #title>
                 {{ title }}
             </template>
@@ -13,21 +13,22 @@
                 {{ content }}
 
                 <div class="mt-4">
-                    <jet-input type="password" class="mt-1 block w-3/4" placeholder="Password"
+                    <jet-input type="password" placeholder="Password"
                                 ref="password"
                                 v-model="form.password"
+                               :class="{ 'is-invalid': form.error }"
                                 @keyup.enter.native="confirmPassword" />
 
-                    <jet-input-error :message="form.error" class="mt-2" />
+                    <jet-input-error :message="form.error" />
                 </div>
             </template>
 
             <template #footer>
-                <jet-secondary-button @click.native="confirmingPassword = false">
+                <jet-secondary-button data-dismiss="modal">
                     Nevermind
                 </jet-secondary-button>
 
-                <jet-button class="ml-2" @click.native="confirmPassword" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                <jet-button class="ml-2" @click.native="confirmPassword" :class="{ 'text-black-50': form.processing }" :disabled="form.processing">
                     {{ button }}
                 </jet-button>
             </template>
@@ -65,7 +66,7 @@
 
         data() {
             return {
-                confirmingPassword: false,
+                modal: null,
 
                 form: this.$inertia.form({
                     password: '',
@@ -79,12 +80,13 @@
         methods: {
             startConfirmingPassword() {
                 this.form.error = '';
+                this.modal = new Bootstrap.Modal(document.getElementById('confirmingPasswordModal'))
 
-                axios.get(route('password.confirmation').url()).then(response => {
+                axios.get(route('password.confirmation')).then(response => {
                     if (response.data.confirmed) {
                         this.$emit('confirmed');
                     } else {
-                        this.confirmingPassword = true;
+                        this.modal.show()
                         this.form.password = '';
 
                         setTimeout(() => {
@@ -97,10 +99,10 @@
             confirmPassword() {
                 this.form.processing = true;
 
-                axios.post(route('password.confirm').url(), {
+                axios.post(route('password.confirm'), {
                     password: this.form.password,
                 }).then(response => {
-                    this.confirmingPassword = false;
+                    this.modal.hide()
                     this.form.password = '';
                     this.form.error = '';
                     this.form.processing = false;
